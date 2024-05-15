@@ -132,29 +132,30 @@ def jaccard_index(pred, target, smooth=1.0):
     return 1- IOU.mean()
 
 
-def calc_loss(pred, target, metrics, bce_weight=0.5):
+def calc_loss(predictions, targets, metrics, bce_weight=0.5):
     # Binary Cress Entropy
     # In PyTorch, binary_cross_entropy_with_logits is a loss function that combines a sigmoid activation function and binary cross-entropy loss.
     # However, it doesn't explicitly apply the sigmoid function to the input. Instead, it expects the input to be logits, which are the raw outputs of a model without applying any activation function.
-    bce = F.binary_cross_entropy_with_logits(pred, target)
+    for prediction, target in zip(predictions, targets):
+        bce = F.binary_cross_entropy_with_logits(prediction, target)
 
-    pred = F.sigmoid(pred)
-    dice = dice_loss(pred, target)
+        prediction = F.sigmoid(prediction)
+        dice = dice_loss(prediction, target)
 
-    # Custom Loss function that combines bce & dice losses
-    # Binary Cross-Entropy (BCE) Loss: BCE loss aims to minimize the difference between the predicted probability distribution and the ground truth binary labels.
-    # It penalizes deviations from the true binary labels, typically encouraging the model to output probabilities that align well with the ground truth.
-    # Dice Loss: Dice loss aims to maximize the overlap between the predicted segmentation mask and the ground truth mask.
-    # It penalizes deviations from the true segmentation mask, typically encouraging the model to produce segmentations that align well with the ground truth boundaries.
-    loss = bce * bce_weight + dice * (1 - bce_weight)
+        # Custom Loss function that combines bce & dice losses
+        # Binary Cross-Entropy (BCE) Loss: BCE loss aims to minimize the difference between the predicted probability distribution and the ground truth binary labels.
+        # It penalizes deviations from the true binary labels, typically encouraging the model to output probabilities that align well with the ground truth.
+        # Dice Loss: Dice loss aims to maximize the overlap between the predicted segmentation mask and the ground truth mask.
+        # It penalizes deviations from the true segmentation mask, typically encouraging the model to produce segmentations that align well with the ground truth boundaries.
+        loss = bce * bce_weight + dice * (1 - bce_weight)
 
-    jac_index=jaccard_index(pred, target)
+        jac_index=jaccard_index(prediction, target)
 
 
-    metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
-    metrics['dice'] += dice.data.cpu().numpy() * target.size(0)
-    metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
-    metrics['jaccrod_index']+=jac_index.data.cpu().numpy() * target.size(0)
+        metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
+        metrics['dice'] += dice.data.cpu().numpy() * target.size(0)
+        metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
+        metrics['jaccrod_index']+=jac_index.data.cpu().numpy() * target.size(0)
 
     return loss
 
